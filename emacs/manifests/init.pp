@@ -8,6 +8,7 @@ class emacs {
          require => Group["emacs"],
          gid => "emacs",
          home => "/home/emacs",
+         shell => "/bin/bash",
       }
 
       file { "/home/emacs":
@@ -56,8 +57,8 @@ class emacs {
 
       service { "emacs":
          require => File["initd"],
-         ensure => "running",
-         enable => "true",
-         hasstatus => "true",
+         ensure => running,
+         enable => true,
+         hasstatus => true,
       }
 }

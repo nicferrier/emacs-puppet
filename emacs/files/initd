@@ -25,7 +25,6 @@ EMACSUID=`awk -F: "\\$1 ~ /$USERNAME/ {print \\$3}" /etc/passwd`
 EMACSCLIENT="sudo -u $USERNAME $HOMEDIR/bin/emacsclient -s /tmp/${USERNAME}${EMACSUID}/$DAEMONNAME"
 EVALEXIT="(progn (setq kill-emacs-hook nil) (kill-emacs))"
 
-
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
 
@@ -49,6 +48,13 @@ do_install_me()
       '(("gnu" . "http://elpa.gnu.org/packages/")
         ("marmalade" . "http://marmalade-repo.org/packages/")))
 
+(defmacro no-error (&rest body)
+  (backquote 
+   (condition-case err
+       ,@body
+     (error
+      (message "error %s" err)))))
+
 ;; Function used by initd package install
 (defun package-let (package archive)
   "Install a package using the specified archive."
@@ -69,9 +75,6 @@ EOF
 #
 do_start()
 {
-    # Check for the properly intalled init file
-    [ -f $USERHOME/.emacs.el ] || do_install_me
-
     # Return
     #   0 if daemon has been started
     #   1 if daemon was already running
@@ -159,9 +162,9 @@ do_install() {
     [ $? -ne 0 ] && return 1
     if [ "$2" != "" ]
     then
-        $EMACSCLIENT -e "(package-let (quote $1) \"$2\")"
+        $EMACSCLIENT -e "(no-error (package-let (quote $1) \"$2\"))"
     else
-        $EMACSCLIENT -e "(package-install (quote $1))"
+        $EMACSCLIENT -e "(no-error (package-install (quote $1)))"
     fi
 }
 
@@ -171,6 +174,10 @@ do_command() {
     [ $? -ne 0 ] && return 1
     $EMACSCLIENT -e "($*)"
 }
+
+
+# Check for the properly intalled init file
+[ -f $USERHOME/.emacs.el ] || do_install_me
 
 case "$1" in
 
